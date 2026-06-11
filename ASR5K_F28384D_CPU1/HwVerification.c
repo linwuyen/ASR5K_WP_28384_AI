@@ -188,11 +188,11 @@ void HwVerification_FLASH_RunTest(void) {
 
 // Stubs
 void HwVerification_ADC_RunLoopback(void) {
-    if (spiB_slave.u16BlockStatus == 3U) { /* 3U matches SPI_BLOCK_STATUS_READY */
+    if (g_sSpiBSlave.u16BlockStatus == 3U) { /* 3U matches SPI_BLOCK_STATUS_READY */
         static uint16_t s_u16PlayIdx = 0U;
         g_hwTest.u16DacRawSet = g_u16SpiBlockRam[s_u16PlayIdx];
         s_u16PlayIdx++;
-        if (s_u16PlayIdx >= spiB_slave.u16BlockExpectedLen) {
+        if (s_u16PlayIdx >= g_sSpiBSlave.u16BlockExpectedLen) {
             s_u16PlayIdx = 0U;
         }
     }

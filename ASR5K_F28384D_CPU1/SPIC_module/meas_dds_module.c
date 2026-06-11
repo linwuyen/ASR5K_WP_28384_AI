@@ -6,6 +6,7 @@
 
 #include <SPIC_module/meas_dds_module.h>
 #include "shareram.h"
+#include "dds/dds_api.h"
 
 /* Global Instance aligned with Hungarian Notation */
 ST_MEAS_DDS g_sMeasDds;
@@ -118,8 +119,9 @@ void initMeasDds(void)
 #endif
 __interrupt void dmaCh1ISR(void)
 {
-    // Clear DMA Channel 1 interrupt flag
-    DMA_clearInterruptFlag(DMA_CH1_BASE);
+    // Clear DMA Channel 1 peripheral trigger/interrupt flag
+    // (this driverlib version has no DMA_clearInterruptFlag)
+    DMA_clearTriggerFlag(DMA_CH1_BASE);
 
     // Read M_Ref directly to GS RAM and increment heartbeat
     sAccessCPU1.u16L1_Ref = g_u16SpiRxBuf[0];
@@ -150,6 +152,12 @@ __interrupt void dmaCh1ISR(void)
     /* Compute scaling using multiplication (Zero Division Constraint) */
     g_sMeasDds.f32AdcCh0V = (float32_t)g_sMeasDds.i16AdcCh0Raw * LTC2353_SCALE_V;
     g_sMeasDds.f32AdcCh1V = (float32_t)g_sMeasDds.i16AdcCh1Raw * LTC2353_SCALE_V;
+
+    /* DDS runtime: step FSM, read sample via active wave pointer and load
+     * the AD5543 code for the next 100kHz cycle (sent by DMA CH2). */
+    DDS_Step();
+    g_sMeasDds.u16DacOut = DDS_GetSample();
+    g_u16TxSequenceBuf[2] = g_sMeasDds.u16DacOut;
 
     g_sMeasDds.u16IsrCounter++;
 

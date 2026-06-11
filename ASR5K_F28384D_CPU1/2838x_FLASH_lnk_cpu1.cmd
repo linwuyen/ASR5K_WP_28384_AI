@@ -137,6 +137,7 @@ SECTIONS
     .comm_interface     : > RAMGS2,     PAGE = 1
     .bbox               : > RAMGS2,     PAGE = 1
     spib_block_ram      : > RAMGS1,     PAGE = 1
+    .wave_gsram_page    : > RAMGS4,     PAGE = 1, type=NOINIT  /* GSRAM fake wave page (4096 words) */
 
     //===========================================================================
     // RAM Function Section (Copy from Flash to RAM at runtime)

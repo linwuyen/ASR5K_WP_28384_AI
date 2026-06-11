@@ -3,7 +3,7 @@
  * via the GUI or CLI. Run CLI with '--help' for additional information on how to override these arguments.
  * @cliArgs --device "F2838x" --part "F2838x_337bga" --package "337bga" --context "CPU1" --product "C2000WARE@5.04.00.00"
  * @v2CliArgs --device "TMS320F28384D" --package "337bga" --context "CPU1" --product "C2000WARE@5.04.00.00"
- * @versions {"tool":"1.21.0+3721"}
+ * @versions {"tool":"1.27.1+4634"}
  */
 
 /**
@@ -369,11 +369,11 @@ spi2.$name          = "SPIB_SYSTEM";
 spi2.bitRate        = 40000000;
 spi2.useInterrupts  = false;
 spi2.useHSMode      = true;
-spi2.spi.$assign    = "SPIB";
 spi2.picoQual.$name = "myGPIOQUAL10";
 spi2.pociQual.$name = "myGPIOQUAL11";
 spi2.clkQual.$name  = "myGPIOQUAL12";
 spi2.pteQual.$name  = "myGPIOQUAL13";
+spi2.spi.$assign    = "SPIB";
 
 spi3.$name                   = "SPIC_MEAS_DDS";
 spi3.bitRate                 = 10000000;

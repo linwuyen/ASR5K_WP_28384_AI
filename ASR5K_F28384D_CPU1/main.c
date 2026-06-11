@@ -21,6 +21,8 @@
 #include "HwVerification.h"
 #include <SPIB_module/spi_slave.h>
 #include <SPIC_module/meas_dds_module.h>
+#include "Wave_module/wave_memory_backend.h"
+#include "dds/dds_api.h"
 
 
 
@@ -103,7 +105,18 @@ void main(void)
     //
     Board_init();
 
-
+    //
+    // Wave Memory Backend: platform EMIF init (home board: EMIF1 CS3 async
+    // SRAM), destructive memory test, then DDS init. The sine page is built
+    // non-blocking by DDS_Poll() in the main loop, then validated/activated
+    // before the 100kHz ISR consumes it.
+    //
+    WaveMem_Init();
+    WaveMem_MemTest();
+    DDS_Init(100000UL,   /* 100kHz sample rate                   */
+             100000UL,   /* 1000.00 Hz -> set 1kHz output        */
+             65535U,     /* full-scale amplitude                 */
+             32768U);    /* mid-scale offset (AD5543 mid code)   */
 
     // IPC synchronization
     //
@@ -123,6 +136,16 @@ void main(void)
     //
     for(;;)
     {
+        // DDS: build sine page (one entry per pass), auto-start once ready
+        DDS_Poll();
+        {
+            static uint16_t s_u16DdsStarted = 0U;
+            if ((s_u16DdsStarted == 0U) && (DDS_IsInitComplete() != 0U)) {
+                DDS_Start();
+                s_u16DdsStarted = 1U;
+            }
+        }
+
         // Execute all hardware verification tasks
         HwVerification_RunAllTests();
 
