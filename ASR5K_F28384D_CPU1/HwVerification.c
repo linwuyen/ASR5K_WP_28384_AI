@@ -14,6 +14,7 @@
 #include "fsi.h"
 #include "timetask.h"
 #include <SPIB_module/spi_slave.h>
+#include "Sandbox_module/output_sink.h"
 
 // ==============================================================================
 // Global Instance
@@ -196,7 +197,11 @@ void HwVerification_ADC_RunLoopback(void) {
             s_u16PlayIdx = 0U;
         }
     }
-    DAC_setShadowValue(DACA_BASE, g_hwTest.u16DacRawSet & 0x0FFF);
+    /* DACA has two possible writers: this 2.5ms loopback path and the 100kHz
+     * DDS INTERNAL_DAC sink. The sink owns DACA while its mask bit is set. */
+    if ((g_sOutputSink.u16SinkMask & OUTPUT_SINK_INTERNAL_DAC) == 0U) {
+        DAC_setShadowValue(DACA_BASE, g_hwTest.u16DacRawSet & 0x0FFF);
+    }
 
     g_hwTest.u16AdcRaw = ADC_readResult(ADCARESULT_BASE, ADC_SOC_NUMBER0);
     g_hwTest.f32AdcVolt = (float32_t)g_hwTest.u16AdcRaw * 0.0007326f;

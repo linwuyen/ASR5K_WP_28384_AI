@@ -23,6 +23,7 @@
 #include <SPIC_module/meas_dds_module.h>
 #include "Wave_module/wave_memory_backend.h"
 #include "dds/dds_api.h"
+#include "Sandbox_module/sandbox_manager.h"
 
 
 
@@ -118,6 +119,13 @@ void main(void)
              65535U,     /* full-scale amplitude                 */
              32768U);    /* mid-scale offset (AD5543 mid code)   */
 
+    //
+    // ASR5K Sandbox: one init for every sandbox module (output sink,
+    // command dispatcher, EPWM tick observer, CV/CC abstraction, FSI/MCBSP
+    // stubs, AM3352 injector, fake flash, fake M0, IPC observer).
+    //
+    Sandbox_InitAll();
+
     // IPC synchronization
     //
     IPC_sync(IPC_CPU1_L_CPU2_R, IPC_SYNC);
@@ -145,6 +153,9 @@ void main(void)
                 s_u16DdsStarted = 1U;
             }
         }
+
+        // All sandbox modules: command dispatch, observers, fake generators
+        Sandbox_PollAll();
 
         // Execute all hardware verification tasks
         HwVerification_RunAllTests();

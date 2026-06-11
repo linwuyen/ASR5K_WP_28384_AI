@@ -224,9 +224,13 @@ EM1OEn  = GPIO32 或 GPIO37（E6 證實 A2 在 GPIO40，GPIO37 是空的，
 
 ## 5. 附註
 
-- E2（產品板 U2009 原理圖）紅字標註「EMIF2 CS0n、0x90000000–0x91FFFFFF」
-  與其網路名稱（全為 `EMIF1_*`）及本專案 syscfg（EMIF1）矛盾，疑為標註
-  筆誤；屬產品板 SDRAM bring-up 範圍，與本次家中板任務無關，留待日後釐清。
+- ~~E2（產品板 U2009 原理圖）紅字標註「EMIF2 CS0n、0x90000000」與網路
+  名稱（`EMIF1_*`）矛盾~~ → **已結案（2026-06-12）：產品 SDRAM 確認走
+  EMIF1 CS0 @ 0x80000000**（使用者確認）。佐證：產品 block diagram 若採
+  EMIF2，其 A2–A5（GPIO100–103）與 SPIC_MEAS_DDS、D2/D3（GPIO135/136）
+  與 SCI Boot Debug 直接撞腳，EMIF2 方案在該腳位規劃下不可行；「EMIF2 /
+  0x90000000」為早期規劃殘留標註。PROD backend 維持
+  `WAVE_MEM_BASE_WORD_ADDR = 0x80000000`，syscfg EMIF1_SDRAM 組態即正解。
 - 本審計之 E1 為使用者轉述之手冊內容；若日後發現手冊原文與轉述有出入，
   以手冊原文為準並更新本文件。
 

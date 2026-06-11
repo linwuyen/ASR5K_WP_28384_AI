@@ -29,9 +29,13 @@
 
 //-----------------------------------------------------------------------------
 // [PLATFORM SELECTION] - change this single line to port
+//
+// SANDBOX_PHASE1 default: GSRAM_FAKE (no external hardware required).
+// Switch to HOME_EMIF1_SRAM for the home-board external SRAM bring-up,
+// PROD_EMIF1_SDRAM on the product board.
 //-----------------------------------------------------------------------------
 #ifndef WAVE_BACKEND_SELECT
-#define WAVE_BACKEND_SELECT             WAVE_BACKEND_HOME_EMIF1_SRAM
+#define WAVE_BACKEND_SELECT             WAVE_BACKEND_GSRAM_FAKE
 #endif
 
 //-----------------------------------------------------------------------------

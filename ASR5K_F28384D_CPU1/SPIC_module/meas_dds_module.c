@@ -7,6 +7,7 @@
 #include <SPIC_module/meas_dds_module.h>
 #include "shareram.h"
 #include "dds/dds_api.h"
+#include "Sandbox_module/output_sink.h"
 
 /* Global Instance aligned with Hungarian Notation */
 ST_MEAS_DDS g_sMeasDds;
@@ -153,11 +154,13 @@ __interrupt void dmaCh1ISR(void)
     g_sMeasDds.f32AdcCh0V = (float32_t)g_sMeasDds.i16AdcCh0Raw * LTC2353_SCALE_V;
     g_sMeasDds.f32AdcCh1V = (float32_t)g_sMeasDds.i16AdcCh1Raw * LTC2353_SCALE_V;
 
-    /* DDS runtime: step FSM, read sample via active wave pointer and load
-     * the AD5543 code for the next 100kHz cycle (sent by DMA CH2). */
+    /* DDS runtime: step FSM, read sample via active wave pointer, then fan
+     * out through the Output Sink mask (DEBUG_VAR / INTERNAL_DAC / AD5543).
+     * The AD5543 sink loads g_u16TxSequenceBuf[2] for the next 100kHz cycle
+     * (sent by DMA CH2) - SPIC/DMA timing is untouched. */
     DDS_Step();
     g_sMeasDds.u16DacOut = DDS_GetSample();
-    g_u16TxSequenceBuf[2] = g_sMeasDds.u16DacOut;
+    OutputSink_Write(g_sMeasDds.u16DacOut);
 
     g_sMeasDds.u16IsrCounter++;
 
