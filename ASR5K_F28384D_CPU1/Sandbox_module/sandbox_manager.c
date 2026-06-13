@@ -69,7 +69,7 @@ static void sandboxRefreshOverview(void)
     g_sSandboxOverview.u32FsiErrCount  = g_sFsiSandbox.u32ErrorCount;
     g_sSandboxOverview.u32McbspTxCount = g_sMcbspSandbox.u32TxCount;
     g_sSandboxOverview.u32CmdDispatch  = g_sSandboxCmd.u32DispatchCount;
-    g_sSandboxOverview.u32Am3352Forward= g_sAm3352Sandbox.u32ForwardCount;
+    g_sSandboxOverview.u32Am3352Forward= g_sAm3352Sandbox.u32PktOkCount;
     g_sSandboxOverview.u32FlashWrites  = g_sFlashSandbox.u32WriteCount;
     g_sSandboxOverview.u32M0Xfers      = g_sM0Sandbox.u32XferCount;
 
@@ -93,14 +93,16 @@ void Sandbox_PollAll(void)
     EpwmSandbox_Poll();
     IpcSandbox_Poll();
 
-    /* Slow fake generators. Order matters for the modeled current loop:
-     * CC writes CC_DA -> MCBSP plant updates CV_AD -> FSI frame carries the
-     * CV sample and returns share% -> CV source may read the plant back. */
+    /* Slow fake generators. Order models the R02_3 control cycle:
+     * CV refresh -> CC stages CC_DA -> FSI frame distributes (carries
+     * CV_AD, R02_2 16-word layout) -> global update point commits CC_DA
+     * (product: EPWM CMPC ISR @ T=8.0us) -> plant responds. */
     if ((s_u32PollDivider & SANDBOX_SLOW_DIV_MASK) == 0UL) {
         CvSandbox_Poll();
         CcSandbox_Poll();
-        McbspSandbox_Poll();
         FsiSandbox_Poll();
+        McbspSandbox_CommitCcDa();   /* R02_3 synchronized output point */
+        McbspSandbox_Poll();
         SeqSandbox_Poll();
     }
     FlashSandbox_Poll();   /* self-throttled */

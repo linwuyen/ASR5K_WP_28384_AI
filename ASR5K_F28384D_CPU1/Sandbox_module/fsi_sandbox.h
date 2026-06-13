@@ -2,38 +2,34 @@
  * fsi_sandbox.h
  *
  * Created: 2026-06-12 (ASR5K_SANDBOX)
- * Updated: 2026-06-12 - frame upgraded to the product 14-word layout
- *          (系統圖「並聯訊息同步」: 14筆 x 16Bits / 100MHz = 2.24usec).
+ * Updated: 2026-06-13 - frame layout aligned to the ADOPTED standard
+ *          R02_2_FSI_OPT_PACKAGE (16 words, 1 Master + 3 Slaves), per
+ *          R02_4 conclusion. Node discovery / skew calibration modeled
+ *          per R02_1.
  *
  * FSI daisy-chain communication stub.
  *
- * Product use: FSI_DAISY_TX (FSITXA GPIO0/1/2) / FSI_DAISY_RX (FSIRXA
- * GPIO12/11/13) + SYNC (GPIO6 out / GPIO90 in) link paralleled units.
- * Frame content per system diagram:
- *   - 三相每點設定電壓資料 (3 phase voltage setpoints)
- *   - 第二台輸出電壓電流 / 第三台輸出電壓電流 (unit2/unit3 V & I)
- *   - 三組自定義操作命令與資料 (3 custom cmd/data pairs -> here 2 pairs
- *     + current-share word, see layout)
- *   - current-share percentage feeding the CC_DA loop (電流環 via MCBSP)
+ * Product chain (R02_1): Master TX -> S1 -> S2 (-> S3) -> Master RX over
+ * LVDS/RJ45, 50MHz DDR (200Mbps), single aggregated 16-word frame per
+ * 10us control cycle. Hardware CRC is provided by the FSI peripheral.
  *
- * 14-word frame layout used by this sandbox (offset = word index):
- *   [0]  sequence number
- *   [1]  phase A setpoint     [2]  phase B setpoint   [3]  phase C setpoint
- *   [4]  unit2 voltage        [5]  unit2 current
- *   [6]  unit3 voltage        [7]  unit3 current
- *   [8]  custom cmd1          [9]  custom data1
- *   [10] custom cmd2          [11] custom data2
- *   [12] current-share %x100 (0..10000)
- *   [13] additive checksum of words 0..12
+ * R02_2 standard frame (16 words, full M+3S):
+ *   [0]  L1_Ref    [1] L2_Ref   [2] L3_Ref     (Master -> all)
+ *   [3]  CV_AD     [4] ID_Func  [5] Data_H  [6] Data_L
+ *   [7..9]   S1: Vout, Iout, Status
+ *   [10..12] S2: Vout, Iout, Status
+ *   [13..15] S3: Vout, Iout, Status
+ * Master payload fields map 1:1 onto the existing shareram M_Ref block
+ * (sAccessCPU1.u16L1_Ref/u16L2_Ref/u16L3_Ref/u16FuncID/u16Data_H/u16Data_L)
+ * plus CV_AD from the MCBSP service.
  *
  * Modes:
- *   FSI_SANDBOX_MODE_FAKE    - software frame loopback + integrity check;
- *                              CV sample is picked up from the MCBSP
- *                              sandbox (CV_AD) into unit2-current, and the
- *                              share% word is generated, modeling the
- *                              CV -> FSI -> share% -> CC chain
+ *   FSI_SANDBOX_MODE_FAKE    - software wire: this node acts as Master,
+ *                              fake S1..S3 fill their slots; "CRC" cannot
+ *                              fail (counter stays 0)
  *   FSI_SANDBOX_MODE_HW_LOOP - placeholder: FSITXA->FSIRXA loopback
- *   FSI_SANDBOX_MODE_DAISY   - placeholder: real daisy-chain
+ *   FSI_SANDBOX_MODE_DAISY   - placeholder: real chain incl. RX_DLY_LINE
+ *                              skew training and token-passing discovery
  */
 
 #ifndef SANDBOX_FSI_SANDBOX_H_
@@ -45,42 +41,51 @@
 #define FSI_SANDBOX_MODE_HW_LOOP  1U   /* placeholder */
 #define FSI_SANDBOX_MODE_DAISY    2U   /* placeholder */
 
-#define FSI_SANDBOX_FRAME_WORDS   14U  /* product frame size */
+#define FSI_SANDBOX_FRAME_WORDS   16U  /* R02_2 standard, FSI hw maximum */
 
-/* Frame word offsets */
-#define FSI_FRM_SEQ        0U
-#define FSI_FRM_SETP_A     1U
-#define FSI_FRM_SETP_B     2U
-#define FSI_FRM_SETP_C     3U
-#define FSI_FRM_U2_VOLT    4U
-#define FSI_FRM_U2_CURR    5U
-#define FSI_FRM_U3_VOLT    6U
-#define FSI_FRM_U3_CURR    7U
-#define FSI_FRM_CMD1       8U
-#define FSI_FRM_DATA1      9U
-#define FSI_FRM_CMD2       10U
-#define FSI_FRM_DATA2      11U
-#define FSI_FRM_SHARE_PCT  12U
-#define FSI_FRM_CHECKSUM   13U
+/* R02_2 word offsets */
+#define FSI_FRM_L1_REF     0U
+#define FSI_FRM_L2_REF     1U
+#define FSI_FRM_L3_REF     2U
+#define FSI_FRM_CV_AD      3U
+#define FSI_FRM_ID_FUNC    4U   /* NodeID(4b) + FuncID(12b) */
+#define FSI_FRM_DATA_H     5U
+#define FSI_FRM_DATA_L     6U
+#define FSI_FRM_S1_VOUT    7U
+#define FSI_FRM_S1_IOUT    8U
+#define FSI_FRM_S1_STAT    9U
+#define FSI_FRM_S2_VOUT    10U
+#define FSI_FRM_S2_IOUT    11U
+#define FSI_FRM_S2_STAT    12U
+#define FSI_FRM_S3_VOUT    13U
+#define FSI_FRM_S3_IOUT    14U
+#define FSI_FRM_S3_STAT    15U
 
 typedef struct {
     uint16_t u16Mode;          /* FSI_SANDBOX_MODE_*                       */
-    uint16_t u16Seq;           /* frame sequence number                    */
+
+    /* R02_1 initialization model (token passing / training placeholders) */
+    uint16_t u16NodeId;        /* this node id (FAKE: 0 = Master)          */
+    uint16_t u16NodeCount;     /* discovered nodes (FAKE: 1)               */
+    uint16_t u16EnSlave;       /* GPIO3 EN_SLAVE state model               */
+    uint16_t u16DlyTap;        /* RX_DLY_LINE_CTRL tap (training result)   */
+
     uint16_t au16TxFrame[FSI_SANDBOX_FRAME_WORDS];
     uint16_t au16RxFrame[FSI_SANDBOX_FRAME_WORDS];  /* last_frame          */
-    uint16_t u16SharePct;      /* received current-share %x100             */
+
     uint32_t u32TxCount;
     uint32_t u32RxCount;
-    uint32_t u32ErrorCount;    /* checksum mismatches (expect 0)           */
+    uint32_t u32ErrorCount;    /* modeled CRC/frame errors (expect 0)      */
     uint32_t u32PollCount;
 } ST_FSI_SANDBOX;
 
 extern ST_FSI_SANDBOX g_sFsiSandbox;
 
 void FsiSandbox_Init(void);
-void FsiSandbox_Poll(void);   /* FAKE: build->send->receive->verify        */
+void FsiSandbox_Poll(void);
 
-/** @brief Received current-share percentage x100 (CC loop consumer). */
-uint16_t FsiSandbox_GetSharePct(void);
+/** @brief CV_AD broadcast word from the last received frame (the value a
+ *  node uses to update its CC_DA per R02_3 loop). */
+uint16_t FsiSandbox_GetRxCvAd(void);
 
 #endif /* SANDBOX_FSI_SANDBOX_H_ */

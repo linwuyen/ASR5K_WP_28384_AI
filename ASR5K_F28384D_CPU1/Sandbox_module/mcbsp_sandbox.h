@@ -37,8 +37,16 @@
 typedef struct {
     uint16_t u16Mode;        /* MCBSP_SANDBOX_MODE_*                       */
 
+    /* R02_3 synchronized output: CC_DA writes are STAGED, then committed
+     * at the global update point (product: EPWM CMPC ISR @ T=8.0us; the
+     * sandbox manager calls Commit once per slow tick after the FSI poll).
+     * u16SyncMode=0 makes Write commit immediately (bypass). */
+    uint16_t u16SyncMode;    /* 1 = staged commit (default), 0 = immediate */
+    uint16_t u16CcDaStaged;  /* staged CC_DA awaiting the sync point       */
+    uint32_t u32CommitCount;
+
     /* Current-loop converter model */
-    uint16_t u16CcDaCode;    /* last CC_DA code written (AD5543 direction) */
+    uint16_t u16CcDaCode;    /* committed CC_DA code (AD5543 direction)    */
     uint16_t u16CvAdSample;  /* latest CV_AD sample (AD7915 direction)     */
 
     /* Legacy word-level view (kept for generic use)                       */
@@ -55,8 +63,11 @@ extern ST_MCBSP_SANDBOX g_sMcbspSandbox;
 
 void McbspSandbox_Init(void);
 
-/** @brief CC_DA write (AD5543 direction). */
+/** @brief CC_DA write (AD5543 direction). Staged when u16SyncMode=1. */
 void McbspSandbox_WriteCcDa(uint16_t u16Code);
+
+/** @brief Global update point (R02_3 CMPC model): commit staged CC_DA. */
+void McbspSandbox_CommitCcDa(void);
 
 /** @brief Latest CV_AD sample (AD7915 direction). */
 uint16_t McbspSandbox_ReadCvAd(void);

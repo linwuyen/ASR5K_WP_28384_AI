@@ -105,4 +105,49 @@ uint16_t M0Sandbox_ReadReg(uint16_t u16Reg);                 /* 0xFFFF on err */
 uint16_t M0Sandbox_WriteReg(uint16_t u16Reg, uint16_t u16Data); /* 1 = ok  */
 void     M0Sandbox_Poll(void);   /* fake plant behavior (slow)             */
 
+//-----------------------------------------------------------------------------
+// D02_2_3 transaction layer: 16-bit virtual address (10-bit mem addr +
+// 6-bit byte length) + SMBus PEC (CRC-8 poly 0x07), executed by a
+// non-blocking byte-stepped state machine (one byte per poll - models the
+// background polling FSM that must never stall the 100kHz loop).
+//
+// Virtual mem addr = BYTE address into the register file (reg N = bytes
+// 2N hi, 2N+1 lo). Out-of-range reads return 0xFF fake data with a valid
+// PEC and perform no action, per the design doc.
+//-----------------------------------------------------------------------------
+#define M0_I2C_SLAVE_ADDR7   0x30U   /* 7-bit; W=0x60, R=0x61 in PEC scope */
+#define M0_XFER_DATA_MAX     16U     /* sandbox cap (protocol allows 63)   */
+
+#define M0_XFER_IDLE         0U
+#define M0_XFER_ADDR         1U      /* sending Slave_W + ADDR_H/L         */
+#define M0_XFER_DATA         2U      /* data bytes moving                  */
+#define M0_XFER_PEC          3U      /* PEC byte + verify                  */
+#define M0_XFER_DONE         4U      /* result valid, auto-returns to IDLE */
+
+typedef struct {
+    uint16_t u16State;        /* M0_XFER_*                                */
+    uint16_t u16IsRead;       /* 1 = read transaction                     */
+    uint16_t u16MemAddr;      /* 10-bit virtual byte address              */
+    uint16_t u16Len;          /* byte count (1..M0_XFER_DATA_MAX)         */
+    uint16_t u16Index;        /* byte progress                            */
+    uint16_t u16MasterPec;    /* master-side running PEC                  */
+    uint16_t u16SlavePec;     /* slave-side running PEC (fake M0)         */
+    uint16_t au8Data[M0_XFER_DATA_MAX];  /* tx source / rx destination    */
+    uint16_t u16Result;       /* DONE: 1 = ok, 0 = PEC/param fail         */
+    uint32_t u32OkCount;
+    uint32_t u32PecErrCount;  /* expect 0 in FAKE mode                    */
+} ST_M0_XFER;
+
+extern ST_M0_XFER g_sM0Xfer;
+
+/** @brief Queue a write of u16Len bytes to virtual address. 1 = accepted. */
+uint16_t M0Sandbox_RequestWrite(uint16_t u16MemAddr, const uint16_t *pu8Data,
+                                uint16_t u16Len);
+
+/** @brief Queue a read of u16Len bytes. Data lands in g_sM0Xfer.au8Data. */
+uint16_t M0Sandbox_RequestRead(uint16_t u16MemAddr, uint16_t u16Len);
+
+/** @brief Step the transaction FSM one byte. Call from the main loop. */
+void M0Sandbox_XferPoll(void);
+
 #endif /* SANDBOX_M0_SANDBOX_H_ */

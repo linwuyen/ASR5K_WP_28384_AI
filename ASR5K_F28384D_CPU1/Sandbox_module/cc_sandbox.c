@@ -13,7 +13,10 @@ ST_CC_SANDBOX g_sCcSandbox;
 
 void CcSandbox_Init(void)
 {
-    g_sCcSandbox.u16Sink          = CC_SINK_DEBUG;
+    /* Default = MCBSP stub so the modeled current loop (CC_DA -> plant ->
+     * CV_AD -> FSI) is alive out of the box; pure software, no hardware
+     * touched. Switch to 1 (DACB) only when probing with a scope. */
+    g_sCcSandbox.u16Sink          = CC_SINK_MCBSP_CCDA;
     g_sCcSandbox.u16PatternEnable = 1U;
     g_sCcSandbox.u16LastCode      = 0U;
     g_sCcSandbox.u32WriteCount    = 0UL;

@@ -27,14 +27,30 @@
 // Command codes
 //-----------------------------------------------------------------------------
 typedef enum {
-    SANDBOX_CMD_NONE          = 0U,
-    SANDBOX_CMD_OUTPUT_ON     = 1U,  /* param unused                          */
-    SANDBOX_CMD_OUTPUT_OFF    = 2U,  /* param unused                          */
-    SANDBOX_CMD_DDS_FREQ      = 3U,  /* param = frequency x100 (0 = DC mode)  */
-    SANDBOX_CMD_DDS_AMP       = 4U,  /* param = amplitude 0..65535            */
-    SANDBOX_CMD_DDS_OFFSET    = 5U,  /* param = offset 0..65535               */
-    SANDBOX_CMD_WAVE_ACTIVATE = 6U   /* param = wave page id                  */
+    SANDBOX_CMD_NONE            = 0U,
+    SANDBOX_CMD_OUTPUT_ON       = 1U,  /* param unused                        */
+    SANDBOX_CMD_OUTPUT_OFF      = 2U,  /* param unused                        */
+    SANDBOX_CMD_DDS_FREQ        = 3U,  /* param = frequency x100 (0=DC mode)  */
+    SANDBOX_CMD_DDS_AMP         = 4U,  /* param = amplitude 0..65535          */
+    SANDBOX_CMD_DDS_OFFSET      = 5U,  /* param = offset 0..65535             */
+    SANDBOX_CMD_WAVE_ACTIVATE   = 6U,  /* param = wave page id                */
+
+    /* R01_1 full DDS feature set (ramps / delays / phases).
+     * Ramp param packing: up_ms<<16 | down_ms (1..60000 each);
+     *                     param == 0 disables the ramp.
+     * Delay param: milliseconds 0..60000 (0 = no delay = "disable").
+     * Phase param: degrees x10, 0..3600; 0xFFFFFFFF = immediate (-1). */
+    SANDBOX_CMD_DDS_AMP_RAMP    = 7U,
+    SANDBOX_CMD_DDS_OFFSET_RAMP = 8U,
+    SANDBOX_CMD_DDS_FREQ_RAMP   = 9U,
+    SANDBOX_CMD_DDS_DELAY_ON    = 10U,
+    SANDBOX_CMD_DDS_DELAY_OFF   = 11U,
+    SANDBOX_CMD_DDS_PHASE_ON    = 12U,
+    SANDBOX_CMD_DDS_PHASE_OFF   = 13U
 } EN_SANDBOX_CMD;
+
+#define SANDBOX_CMD_MAX           13U
+#define SANDBOX_PHASE_IMMEDIATE   0xFFFFFFFFUL
 
 //-----------------------------------------------------------------------------
 // Command mailbox (watch-friendly)
