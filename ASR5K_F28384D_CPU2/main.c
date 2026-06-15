@@ -9,6 +9,8 @@ ST_SHARERAM sAccessCPU2;
 
 
 static uint32_t s_u32Cpu2HbTs = 0U;
+uint16_t beat2 = 0;
+
 //
 // Main
 //
@@ -58,6 +60,8 @@ void main(void)
     //
     for(;;)
     {
+        beat2++;
+
         if((U32_UPCNTS - s_u32Cpu2HbTs) >= T_500MS) {
             GPIO_togglePin(STAT_CPU2);
             s_u32Cpu2HbTs = U32_UPCNTS;

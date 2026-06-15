@@ -36,7 +36,7 @@ ST_SHARERAM sReadCPU2;
                                  |MEMCFG_SECT_GS10|MEMCFG_SECT_GS11| \
                                  MEMCFG_SECT_GS15 )
 uint16_t MEP_ScaleFactor;
-
+uint16_t beat1 = 0;
 volatile uint32_t ePWM[9] = {
     0,
     EPWM1_BASE,
@@ -144,27 +144,28 @@ void main(void)
     //
     for(;;)
     {
-        // DDS: build sine page (one entry per pass), auto-start once ready
-        DDS_Poll();
-        {
-            static uint16_t s_u16DdsStarted = 0U;
-            if ((s_u16DdsStarted == 0U) && (DDS_IsInitComplete() != 0U)) {
-                DDS_Start();
-                s_u16DdsStarted = 1U;
-            }
-        }
-
-        // All sandbox modules: command dispatch, observers, fake generators
-        Sandbox_PollAll();
+//        // DDS: build sine page (one entry per pass), auto-start once ready
+//        DDS_Poll();
+//        {
+//            static uint16_t s_u16DdsStarted = 0U;
+//            if ((s_u16DdsStarted == 0U) && (DDS_IsInitComplete() != 0U)) {
+//                DDS_Start();
+//                s_u16DdsStarted = 1U;
+//            }
+//        }
+//
+//        // All sandbox modules: command dispatch, observers, fake generators
+//        Sandbox_PollAll();
 
         // Execute all hardware verification tasks
-        HwVerification_RunAllTests();
+//        HwVerification_RunAllTests();
 
         if((U32_UPCNTS - s_u32Cpu1HbTs) >= T_500MS) {
             GPIO_togglePin(STAT_CPU1);
             s_u32Cpu1HbTs = U32_UPCNTS;
         }
 
+        beat1++;
         runSPIBslave();
 
 //        // Start timing
