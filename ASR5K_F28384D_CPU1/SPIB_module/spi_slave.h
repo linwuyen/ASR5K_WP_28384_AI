@@ -24,6 +24,19 @@ typedef enum {
     _SSS_GET_ERROR  = (0x80000000)
 }SSS_STAT;
 
+typedef volatile struct {
+    uint32_t RxDmaDoneCount;
+    uint32_t RxDmaRestartCount;
+    uint32_t TxDmaDoneCount;
+    uint32_t RxParseOkCount;
+    uint32_t RxParseFailCount;
+    uint16_t LastRxAddr;
+    uint16_t LastRxData;
+    uint16_t LastTxAddr;
+    uint16_t LastTxData;
+    uint32_t DmaFaultFlags;
+} ST_SPIB_DMA_DIAG;
+
 // Base address for the SPI module used for system communication
 #ifndef SPIB_SYSTEM_BASE
 #define SPIB_SYSTEM_BASE       SPIB_BASE
@@ -79,6 +92,7 @@ typedef volatile struct {
 typedef ST_SPI_SLAVE * HAL_SPI_SLAVE;
 
 extern ST_SPI_SLAVE g_sSpiBSlave;
+extern ST_SPIB_DMA_DIAG g_sSpiBDmaDiag;
 extern volatile uint16_t g_u16SpiBlockRam[SIZE_OF_SPI_BLOCK_RAM];
 extern void runSPIBslave(void);
 
